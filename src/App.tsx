@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import ProfileDetail from "./components/ProfileDetail";
 import CardRepo from "./components/CardRepo";
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  UserButton,
+} from "@clerk/clerk-react";
 
 export interface RepoDetail {
   id: number;
@@ -11,6 +17,10 @@ export interface RepoDetail {
   forks_count: number;
   language: string;
   updated_at: string;
+  license: {
+    key: string;
+    name: string;
+  } | null;
 }
 
 interface UserDetail {
@@ -28,29 +38,41 @@ interface UserDetail {
 function App() {
   const [dataFetch, setDataFetch] = useState<UserDetail | null>(null);
   const [repoList, setRepoList] = useState<RepoDetail[]>([]);
-  const [search, setSearch] = useState("FilimonovAlexey");
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    const fetchDataRepo = async () => {
-      const response = await fetch(
-        `https://api.github.com/users/${search}/repos?page=${page}&per_page=4`
-      );
-      const data = await response.json();
-      setRepoList((prevRepoList) => [...prevRepoList, ...data]);
-      console.log(data);
-    };
-    fetchDataRepo();
+    try {
+      const fetchDataRepo = async () => {
+        const response = await fetch(
+          `https://api.github.com/users/${search}/repos?page=${page}&per_page=4`
+        );
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setRepoList((prevRepoList) => [...prevRepoList, ...data]);
+        } else {
+          setRepoList((prevRepoList) => [...prevRepoList, data]);
+        }
+        console.log(data);
+      };
+      fetchDataRepo();
+    } catch (err) {
+      console.log(err);
+    }
   }, [search, page]);
 
   useEffect(() => {
-    const fetchDataUser = async () => {
-      const response = await fetch(`https://api.github.com/users/${search}`);
-      const data = await response.json();
-      setDataFetch(data);
-      console.log(data);
-    };
-    fetchDataUser();
+    try {
+      const fetchDataUser = async () => {
+        const response = await fetch(`https://api.github.com/users/${search}`);
+        const data = await response.json();
+        setDataFetch(data);
+        console.log(data);
+      };
+      fetchDataUser();
+    } catch (err) {
+      console.log(err);
+    }
   }, [search]);
 
   if (!dataFetch) {
@@ -66,6 +88,16 @@ function App() {
   };
   return (
     <div>
+      <div>
+        <header>
+          <SignedOut>
+            <SignInButton />
+          </SignedOut>
+          <SignedIn>
+            <UserButton />
+          </SignedIn>
+        </header>
+      </div>
       <div className="relative">
         <img
           className="w-screen"
@@ -114,7 +146,7 @@ function App() {
           {repoList.length > 4 && (
             <div className="flex justify-center my-10 text-[#CDD5E0] hover:text-[#3662E3]">
               <button onClick={handleLoadMoreClick}>
-                View all repositories
+                View more repositories
               </button>
             </div>
           )}
